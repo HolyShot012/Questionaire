@@ -1,5 +1,9 @@
 import streamlit as st
 from model import CareerQuizModel
+import qrcode
+from io import BytesIO
+import pandas as pd
+import os
 
 st.markdown("""
     <style>
@@ -33,16 +37,32 @@ st.markdown("""
         margin-bottom: 5px;
     }
     .stTextInput>div>input {
-        border: 2px solid #A8E6CF;
-        border-radius: 5px;
+        border: 3px solid #4CAF50;
+        border-radius: 10px;
+        background-color: #ffffff;
+        padding: 10px;
+        font-size: 16px;
+        box-shadow: 2px 2px 8px rgba(0,0,0,0.2);
+    }
+    .stTextInput>div {
+        padding: 10px;
+        border: 2px dashed #A8E6CF;
+        border-radius: 12px;
+        background-color: #FAFAFA;
+        margin-bottom: 15px;
     }
     </style>
 """, unsafe_allow_html=True)
+
 model = CareerQuizModel(config_path="config.json", questions_csv_path="question.csv")
 
-# Header
-# st.image("banner.jpg", use_column_width=True)
 st.title("Grow Your Path - Summer Dream: The Garden")
+
+app_url = "https://holyshot012-questionaire-app-pqbsld.streamlit.app/"
+qr = qrcode.make(app_url)
+buf = BytesIO()
+qr.save(buf, format="PNG")
+st.image(buf.getvalue(), caption="Scan to open on your phone")
 
 if "answers" not in st.session_state:
     st.session_state.answers = {}
@@ -125,11 +145,21 @@ if model.questions:
         recommendations = model.get_recommendations(scores, top_n=3)
         
         st.subheader("Kết quả nghề nghiệp đề xuất")
-        for i, rec in enumerate(recommendations, 1):
-            st.write(f"{i}. {rec['career_name']}")
-        
+        job_list = [rec['career_name'] for rec in recommendations]
+        for i, job in enumerate(job_list, 1):
+            st.write(f"{i}. {job}")
+
+        new_data = pd.DataFrame([[st.session_state.name] + job_list], columns=["Name", "Job 1", "Job 2", "Job 3"])
+        filename = "results.csv"
+        if os.path.exists(filename):
+            old = pd.read_csv(filename)
+            updated = pd.concat([old, new_data], ignore_index=True)
+        else:
+            updated = new_data
+        updated.to_csv(filename, index=False)
+
         if st.button("Làm lại Quiz"):
             st.session_state.clear() 
-            st.rerun()  
+            st.rerun()   
 else:
     st.error("Không tải được câu hỏi. Vui lòng kiểm tra file question.csv.")
