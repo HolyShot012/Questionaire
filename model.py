@@ -1,5 +1,13 @@
 import json
 import pandas as pd
+import logging
+
+# Set up logging
+logging.basicConfig(
+    level=logging.INFO,
+    format='%(asctime)s - %(levelname)s - %(message)s'
+)
+logger = logging.getLogger(__name__)
 
 class CareerQuizModel:
     """
@@ -21,6 +29,7 @@ class CareerQuizModel:
         """
         scores = {}
         if not isinstance(score_string, str):
+            logger.warning(f"Định dạng điểm không phải chuỗi: '{score_string}'")
             return scores
         
         try:
@@ -28,26 +37,38 @@ class CareerQuizModel:
             for pair in pairs:
                 if ':' in pair:
                     key, value = pair.split(':')
-                    scores[key.strip()] = int(value.strip())
-        except ValueError:
-            print(f"Cảnh báo: Định dạng điểm bị lỗi và không thể đọc: '{score_string}'")
+                    key, value = key.strip(), value.strip()
+                    try:
+                        scores[key] = int(value)
+                    except ValueError:
+                        logger.warning(f"Giá trị điểm không hợp lệ trong '{pair}'")
+        except Exception as e:
+            logger.warning(f"Cảnh báo: Định dạng điểm bị lỗi: '{score_string}' - Lỗi: {e}")
         return scores
 
     def _load_questions_from_csv(self):
         """Hàm mới: Đọc và chuyển đổi dữ liệu từ file CSV."""
         try:
-            df = pd.read_csv(self.questions_csv_path)
+            df = pd.read_csv(self.questions_csv_path, encoding='utf-8')
             
             required_cols = ['id', 'prompt', 'option_A_text', 'option_A_scores', 
                              'option_B_text', 'option_B_scores']
             if not all(col in df.columns for col in required_cols):
-                print("Lỗi: File CSV thiếu các cột cần thiết (id, prompt, option_A_text, option_A_scores, ...).")
+                logger.error("File CSV thiếu các cột cần thiết: %s", required_cols)
+                return
+
+            # Validate data types
+            if not all(isinstance(x, (str, int)) for x in df['id']):
+                logger.error("Cột 'id' chứa giá trị không phải chuỗi hoặc số nguyên")
+                return
+            if not all(isinstance(x, str) for x in df['prompt']):
+                logger.error("Cột 'prompt' chứa giá trị không phải chuỗi")
                 return
 
             temp_questions = []
             for _, row in df.iterrows():
                 question = {
-                    "id": row['id'],
+                    "id": str(row['id']),  # Ensure id is string
                     "prompt": row['prompt'],
                     "options": {
                         "A": {
@@ -72,10 +93,15 @@ class CareerQuizModel:
                     }
                 temp_questions.append(question)
             self.questions = temp_questions
+            logger.info("Đọc thành công %d câu hỏi từ file CSV", len(self.questions))
         except FileNotFoundError:
-            print(f"Lỗi: Không tìm thấy file câu hỏi CSV tại '{self.questions_csv_path}'.")
+            logger.error("Không tìm thấy file câu hỏi CSV tại '%s'", self.questions_csv_path)
+        except pd.errors.EmptyDataError:
+            logger.error("File CSV tại '%s' rỗng", self.questions_csv_path)
+        except pd.errors.ParserError:
+            logger.error("Lỗi phân tích file CSV tại '%s' (định dạng không hợp lệ)", self.questions_csv_path)
         except Exception as e:
-            print(f"Lỗi không xác định khi đọc file CSV: {e}")
+            logger.error("Lỗi không xác định khi đọc file CSV: %s", e)
 
     def _load_data(self):
         """Hàm tải dữ liệu tổng hợp: gọi hàm đọc JSON và CSV."""
@@ -83,14 +109,19 @@ class CareerQuizModel:
             with open(self.config_path, 'r', encoding='utf-8') as f:
                 config_data = json.load(f)
                 self.career_profiles = config_data.get('career_profiles', {})
+                if not self.career_profiles:
+                    logger.warning("Không tìm thấy 'career_profiles' trong file JSON hoặc rỗng")
         except FileNotFoundError:
-            print(f"Lỗi nghiêm trọng: Không tìm thấy file config tại '{self.config_path}'.")
+            logger.error("Không tìm thấy file config tại '%s'", self.config_path)
+            return
+        except json.JSONDecodeError as e:
+            logger.error("File JSON tại '%s' có định dạng không hợp lệ: %s", self.config_path, e)
             return
         
         self._load_questions_from_csv()
 
         if not self.questions or not self.career_profiles:
-            print("Cảnh báo: Dữ liệu câu hỏi hoặc ngành nghề chưa được tải thành công.")
+            logger.warning("Dữ liệu câu hỏi hoặc ngành nghề chưa được tải thành công")
 
     def calculate_scores(self, user_answers):
         """Hàm logic chính (mapping), không thay đổi."""
@@ -103,7 +134,11 @@ class CareerQuizModel:
                         for career, points in option['scores'].items():
                             if career in scores:
                                 scores[career] += points
+                    else:
+                        logger.warning("Câu trả lời không hợp lệ: question_id=%s, answer_key=%s", question_id, answer_key)
                     break
+            else:
+                logger.warning("ID câu hỏi không hợp lệ: %s", question_id)
         return scores
 
     def get_recommendations(self, scores, top_n=3):
@@ -118,45 +153,50 @@ class CareerQuizModel:
         return recommendations
 
 if __name__ == "__main__":
-    print("--- CHẠY MÔ PHỎNG MODEL VỚI DỮ LIỆU TỪ CSV ---")
+    logger.info("--- CHẠY MÔ PHỎNG MODEL VỚI DỮ LIỆU TỪ CSV ---")
     
     # Tạo file config.json giả lập để code chạy được
     config_content = {
-      "career_profiles": {
-        "software_eng": "Software Engineer", "qa_qc_eng": "QA/QC Engineer",
-        "backend_dev": "Backend Developer", "frontend_dev": "Frontend Developer",
-        "tester": "Tester", "pm_ba_po": "Project Manager/BA/PO",
-        "cloud_devops": "Cloud/DevOps Engineer", "solutions_architect": "Solutions Architect",
-        "ai_ml_eng": "AI/ML Engineer", "data_science": "Data Science/Analysis/Engineer"
-      }
+        "career_profiles": {
+            "software_eng": "Software Engineer", "qa_qc_eng": "QA/QC Engineer",
+            "backend_dev": "Backend Developer", "frontend_dev": "Frontend Developer",
+            "tester": "Tester", "pm_ba_po": "Project Manager/BA/PO",
+            "cloud_devops": "Cloud/DevOps Engineer", "solutions_architect": "Solutions Architect",
+            "ai_ml_eng": "AI/ML Engineer", "data_science": "Data Science/Analysis/Engineer"
+        }
     }
-    with open('config.json', 'w', encoding='utf-8') as f:
-        json.dump(config_content, f)
+    try:
+        with open('config.json', 'w', encoding='utf-8') as f:
+            json.dump(config_content, f)
+        logger.info("Tạo file config.json thành công")
+    except (PermissionError, OSError) as e:
+        logger.error("Lỗi khi ghi file config.json: %s", e)
+        exit(1)
 
     model = CareerQuizModel(config_path='config.json', questions_csv_path='question.csv')
 
     if model.questions and model.career_profiles:
-        print("\nTải dữ liệu thành công!")
+        logger.info("Tải dữ liệu thành công!")
         
         # Lấy ID câu hỏi có sẵn từ dữ liệu đã tải để mô phỏng
         available_question_ids = [q['id'] for q in model.questions]
         mock_user_answers = {}
         if len(available_question_ids) >= 3:
-             mock_user_answers = {
+            mock_user_answers = {
                 available_question_ids[0]: "A",
                 available_question_ids[1]: "C",
                 available_question_ids[2]: "B", 
             }
 
-        print(f"\nGiả lập input của người dùng: {mock_user_answers}")
+        logger.info("Giả lập input của người dùng: %s", mock_user_answers)
 
         final_scores = model.calculate_scores(mock_user_answers)
-        print(f"\nBảng điểm đã được tính toán: {final_scores}")
+        logger.info("Bảng điểm đã được tính toán: %s", final_scores)
 
         top_3_recommendations = model.get_recommendations(final_scores, top_n=3)
         
-        print("\n--- KẾT QUẢ GỢI Ý HÀNG ĐẦU ---")
+        logger.info("--- KẾT QUẢ GỢI Ý HÀNG ĐẦU ---")
         for i, rec in enumerate(top_3_recommendations):
-            print(f"{i+1}. {rec['career_name']} (Điểm: {rec['score']})")
+            logger.info("%d. %s (Điểm: %d)", i+1, rec['career_name'], rec['score'])
     else:
-        print("\nKhông thể chạy mô phỏng do lỗi tải dữ liệu.")
+        logger.error("Không thể chạy mô phỏng do lỗi tải dữ liệu")
