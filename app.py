@@ -78,17 +78,25 @@ st.subheader("Tên bạn là gì?")
 st.session_state.name = st.text_input("Nhập tên của bạn", key="name_input")
 
 def append_to_google_sheet(df):
-    scopes = ["https://www.googleapis.com/auth/spreadsheets", "https://www.googleapis.com/auth/drive"]
+    scopes = [
+        "https://www.googleapis.com/auth/spreadsheets",
+        "https://www.googleapis.com/auth/drive",
+    ]
     creds = service_account.Credentials.from_service_account_info(
         st.secrets["gcp_service_account"], scopes=scopes
     )
     client = gspread.authorize(creds)
-    sh = client.open_by_key(st.secrets["gsheet_id"])
+
+    gsheet_id = st.secrets["gcp_service_account"]["gsheet_id"]
+    gsheet_tab = st.secrets["gcp_service_account"].get("gsheet_tab", "Responses")
+
+    sh = client.open_by_key(gsheet_id)
     try:
-        ws = sh.worksheet(st.secrets.get("gsheet_tab", "Responses"))
+        ws = sh.worksheet(gsheet_tab)
     except gspread.exceptions.WorksheetNotFound:
-        ws = sh.add_worksheet(title=st.secrets.get("gsheet_tab", "Responses"), rows="100", cols="10")
+        ws = sh.add_worksheet(title=gsheet_tab, rows="100", cols="10")
         ws.append_row(list(df.columns), value_input_option="USER_ENTERED")
+
     for _, row in df.iterrows():
         ws.append_row(row.tolist(), value_input_option="USER_ENTERED")
 
