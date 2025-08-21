@@ -2,3 +2,7 @@ streamlit
 pandas
 qrcode
 Pillow
+gspread
+oauth2client
+gspread-dataframe
+google-auth
