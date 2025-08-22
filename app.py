@@ -11,8 +11,7 @@ from google.oauth2 import service_account
 st.set_page_config(
     page_title="Grow Your Path",
     layout="centered",
-    initial_sidebar_state="collapsed",
-    theme="light"
+    initial_sidebar_state="collapsed"
 )
 st.markdown("""
     <style>
