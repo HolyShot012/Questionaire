@@ -51,7 +51,7 @@ st.markdown("""
         border-radius: 5px;
         margin-bottom: 5px;
     }
-    .stRadio label {
+    .stRadio div[role="radiogroup"] label span {
         color: black !important;
         font-size: 16px !important;
     }
