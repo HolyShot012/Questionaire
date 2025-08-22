@@ -147,6 +147,7 @@ class CareerQuizModel:
         recommendations = []
         for career_key, score in sorted_scores[:top_n]:
             recommendations.append({
+                "career_id": career_key,
                 "career_name": self.career_profiles.get(career_key, "Không rõ"),
                 "score": score
             })

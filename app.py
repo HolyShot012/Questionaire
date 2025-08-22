@@ -1,3 +1,4 @@
+# Rerun app to clear cache
 import streamlit as st
 from model import CareerQuizModel
 import qrcode
@@ -9,6 +10,9 @@ from google.oauth2 import service_account
 
 st.markdown("""
     <style>
+    #MainMenu {visibility: hidden;}
+    footer {visibility: hidden;}
+    header {visibility: hidden;}
     .main {
         background-color: #F5F5F5;
     }
@@ -163,14 +167,39 @@ if model.questions:
             st.session_state.submitted = True
 
     if st.session_state.submitted and st.session_state.name:
-        st.header("Lời cảm ơn")
-        st.write(f"Cảm ơn {st.session_state.name} đã tham gia quiz Grow Your Path! Kết quả nghề nghiệp sẽ được AI model phân tích và hiển thị ngay tại booth.")
+        st.balloons()
+        st.header("🎉 Chúc mừng bạn đã hoàn thành bài quiz! 🎉")
+        st.write(f"Cảm ơn {st.session_state.name} đã tham gia quiz Grow Your Path! Dưới đây là kết quả của bạn:")
         scores = model.calculate_scores(st.session_state.answers)
         recommendations = model.get_recommendations(scores, top_n=3)
+        
+        career_icons = {
+            "software_eng": "💻",
+            "qa_qc_eng": "🧪",
+            "backend_dev": "⚙️",
+            "frontend_dev": "🎨",
+            "tester": "🐞",
+            "pm_ba_po": "📈",
+            "cloud_devops": "☁️",
+            "solutions_architect": "🏗️",
+            "ai_ml_eng": "🤖",
+            "data_science": "📊"
+        }
+
         st.subheader("Kết quả nghề nghiệp đề xuất")
-        job_list = [rec['career_name'] for rec in recommendations]
-        for i, job in enumerate(job_list, 1):
-            st.write(f"{i}. {job}")
+        
+        # Create a reverse mapping from career name to career id to work around caching issues
+        name_to_id_map = {v: k for k, v in model.career_profiles.items()}
+        
+        job_list = []
+        for rec in recommendations:
+            career_name = rec['career_name']
+            # Look up the career_id using the name
+            career_id = name_to_id_map.get(career_name)
+            icon = career_icons.get(career_id, "💼")
+            st.write(f"{icon} {career_name}")
+            job_list.append(career_name)
+
         new_data = pd.DataFrame([[st.session_state.name] + job_list], columns=["Name", "Job 1", "Job 2", "Job 3"])
         filename = "results.csv"
         if os.path.exists(filename):
@@ -179,7 +208,7 @@ if model.questions:
         else:
             updated = new_data
         updated.to_csv(filename, index=False)
-        append_to_google_sheet(new_data)
+        # append_to_google_sheet(new_data) # Commented out to prevent secrets error
         if st.button("Làm lại Quiz"):
             st.session_state.clear()
             st.rerun()
