@@ -13,25 +13,25 @@ st.set_page_config(
     layout="centered",
     initial_sidebar_state="collapsed"
 )
+
 st.markdown("""
     <style>
-    html, body, [class*="css"]  {
+    html, body, .stApp {
         background-color: #F5F5F5 !important;
         color: black !important;
     }
+
     #MainMenu {visibility: hidden;}
     footer {visibility: hidden;}
     header {visibility: hidden;}
-    .main {
-        background-color: #F5F5F5;
-    }
+
     .stApp {
         max-width: 800px;
         margin: 0 auto;
         font-family: Arial, sans-serif;
     }
     h1, h2, h3 {
-        color: #A8E6CF;
+        color: #222 !important;
         text-align: center;
     }
     .stButton>button {
@@ -54,7 +54,8 @@ st.markdown("""
     .stTextInput>div>input {
         border: 3px solid #4CAF50;
         border-radius: 10px;
-        background-color: #ffffff;
+        background-color: #ffffff !important;
+        color: black !important;
         padding: 10px;
         font-size: 16px;
         box-shadow: 2px 2px 8px rgba(0,0,0,0.2);
