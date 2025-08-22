@@ -8,8 +8,18 @@ import os
 import gspread
 from google.oauth2 import service_account
 
+st.set_page_config(
+    page_title="Grow Your Path",
+    layout="centered",
+    initial_sidebar_state="collapsed",
+    theme="light"
+)
 st.markdown("""
     <style>
+    html, body, [class*="css"]  {
+        background-color: #F5F5F5 !important;
+        color: black !important;
+    }
     #MainMenu {visibility: hidden;}
     footer {visibility: hidden;}
     header {visibility: hidden;}
