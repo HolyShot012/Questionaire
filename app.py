@@ -8,12 +8,6 @@ import os
 import gspread
 from google.oauth2 import service_account
 
-st.set_page_config(
-    page_title="Grow Your Path",
-    layout="centered",
-    initial_sidebar_state="collapsed"
-)
-
 st.markdown("""
     <style>
     html, body, .stApp {
@@ -30,10 +24,12 @@ st.markdown("""
         margin: 0 auto;
         font-family: Arial, sans-serif;
     }
+
     h1, h2, h3 {
         color: #222 !important;
         text-align: center;
     }
+
     .stButton>button {
         background-color: #FF9999;
         color: white;
@@ -45,12 +41,21 @@ st.markdown("""
     .stButton>button:hover {
         background-color: #FF8080;
     }
+
     .stRadio>div>label {
-        background-color: #A8E6CF33;
-        padding: 8px;
-        border-radius: 5px;
-        margin-bottom: 5px;
+        background-color: #E0F7E9 !important;
+        color: black !important;
+        padding: 10px;
+        border-radius: 6px;
+        margin-bottom: 6px;
+        display: block;
     }
+
+    .stRadio>div>label:hover {
+        background-color: #C8E6C9 !important;
+        color: black !important;
+    }
+
     .stTextInput>div>input {
         border: 3px solid #4CAF50;
         border-radius: 10px;
