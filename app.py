@@ -208,7 +208,7 @@ if model.questions:
         else:
             updated = new_data
         updated.to_csv(filename, index=False)
-        # append_to_google_sheet(new_data) # Commented out to prevent secrets error
+        append_to_google_sheet(new_data) # Commented out to prevent secrets error
         if st.button("Làm lại Quiz"):
             st.session_state.clear()
             st.rerun()
