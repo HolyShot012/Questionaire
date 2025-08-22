@@ -67,8 +67,8 @@ st.title("Grow Your Path - Summer Dream: The Garden")
 app_url = "https://holyshot012-questionaire-app-pqbsld.streamlit.app/"
 qr = qrcode.make(app_url)
 buf = BytesIO()
-qr.save(buf, format="PNG")
-st.image(buf.getvalue(), caption="Scan to open on your phone")
+# qr.save(buf, format="PNG")
+# st.image(buf.getvalue(), caption="Scan to open on your phone")
 
 if "answers" not in st.session_state:
     st.session_state.answers = {}
